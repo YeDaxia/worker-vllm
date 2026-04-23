@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import json
 import logging
 import os
@@ -20,6 +21,15 @@ from constants import DEFAULT_BATCH_SIZE, DEFAULT_BATCH_SIZE_GROWTH_FACTOR, DEFA
 from engine_args import get_engine_args
 from tokenizer import TokenizerWrapper
 from utils import BatchSize, DummyRequest, JobInput, create_error_response
+
+
+def _construct_with_supported_kwargs(cls, **kwargs):
+    supported_kwargs = inspect.signature(cls.__init__).parameters
+    filtered_kwargs = {k: v for k, v in kwargs.items() if k in supported_kwargs}
+    dropped_kwargs = sorted(set(kwargs) - set(filtered_kwargs))
+    if dropped_kwargs:
+        logging.info("Skipping unsupported %s kwargs: %s", cls.__name__, ", ".join(dropped_kwargs))
+    return cls(**filtered_kwargs)
 
 class vLLMEngine:
     def __init__(self, engine = None):
@@ -248,8 +258,9 @@ class OpenAIvLLMEngine(vLLMEngine):
         if self.tokenizer and hasattr(self.tokenizer, 'tokenizer'):
             chat_template = self.tokenizer.tokenizer.chat_template
         
-        self.chat_engine = OpenAIServingChat(
-            engine_client=self.llm, 
+        self.chat_engine = _construct_with_supported_kwargs(
+            OpenAIServingChat,
+            engine_client=self.llm,
             models=self.serving_models,
             response_role=self.response_role,
             request_logger=None,
@@ -266,7 +277,8 @@ class OpenAIvLLMEngine(vLLMEngine):
             enable_log_outputs=os.getenv('ENABLE_LOG_OUTPUTS', 'false').lower() == 'true',
             log_error_stack=os.getenv('LOG_ERROR_STACK', 'false').lower() == 'true',
         )
-        self.completion_engine = OpenAIServingCompletion(
+        self.completion_engine = _construct_with_supported_kwargs(
+            OpenAIServingCompletion,
             engine_client=self.llm,
             models=self.serving_models,
             request_logger=None,
