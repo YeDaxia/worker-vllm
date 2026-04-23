@@ -3,7 +3,7 @@ variable "DOCKERHUB_REPO" {
 }
 
 variable "DOCKERHUB_IMG" {
-  default = "worker-v1-vllm"
+  default = "worker-vllm"
 }
 
 variable "RELEASE_VERSION" {

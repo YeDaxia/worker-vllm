@@ -35,7 +35,7 @@ Deploy OpenAI-Compatible Blazing-Fast LLM Endpoints powered by the [vLLM](https:
 
 **🚀 Deploy Guide**: Follow our [step-by-step deployment guide](https://docs.runpod.io/serverless/vllm/get-started) to deploy using the RunPod Console.
 
-**📦 Docker Image**: `runpod/worker-v1-vllm:<version>`
+**📦 Docker Image**: `runpod/worker-vllm:<version>`
 
 - **Available Versions**: See [GitHub Releases](https://github.com/runpod-workers/worker-vllm/releases)
 - **CUDA Compatibility**: Requires CUDA >= 12.1
@@ -70,6 +70,14 @@ Configure worker-vllm using environment variables:
 Any env var whose name matches a valid `AsyncEngineArgs` field (uppercased) is applied automatically. Backward-compat aliases: `MODEL_NAME`, `TOKENIZER_NAME`, `MAX_CONTEXT_LEN_TO_CAPTURE`. This lets you configure any vLLM option without waiting for explicit worker support.
 
 For the complete list of all available environment variables, examples, and detailed descriptions: **[Configuration](docs/configuration.md)**
+
+### Gemma 4
+
+This image now ships with `vllm==0.19.1`, which includes native support for Google's Gemma 4 family.
+
+- Example text deployment: `MODEL_NAME=google/gemma-4-E2B-it`
+- For OpenAI-compatible reasoning/tool-call flows, you can also set `REASONING_PARSER=gemma4` and `TOOL_CALL_PARSER=gemma4` when your application uses those features.
+- Gemma 4 is a multimodal model family. For text-only deployments, consider setting `LANGUAGE_MODEL_ONLY=true` to avoid loading multimodal modules and reduce VRAM usage.
 
 ## Option 2: Build Docker Image with Model Inside
 
@@ -114,6 +122,14 @@ You can combine it with other arguments:
 docker build -t username/image:tag --build-arg VLLM_NIGHTLY=true --build-arg MODEL_NAME="meta-llama/Llama-3.1-8B-Instruct" --build-arg BASE_PATH="/models" .
 ```
 
+### Example: Building an image with Gemma 4
+
+```bash
+docker build -t username/worker-vllm:gemma4 \
+  --build-arg MODEL_NAME="google/gemma-4-E2B-it" \
+  --build-arg BASE_PATH="/models" .
+```
+
 ### (Optional) Including Huggingface Token
 
 If the model you would like to deploy is private or gated, you will need to include it during build time as a Docker secret, which will protect it from being exposed in the image and on DockerHub.
@@ -139,6 +155,21 @@ docker build -t username/image:tag --secret id=HF_TOKEN --build-arg MODEL_NAME="
 # Compatible Model Architectures
 
 You can deploy **any model on Hugging Face** that is supported by vLLM. For the complete and up-to-date list of supported model architectures, see the [vLLM Supported Models documentation](https://docs.vllm.ai/en/latest/models/supported_models.html#list-of-text-only-language-models).
+
+# Publishing To Docker Hub
+
+This repository includes a standard GitHub Actions workflow at `.github/workflows/dockerhub.yml` that builds and pushes the image to Docker Hub.
+
+Required repository secrets:
+
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN`
+
+Optional repository variables:
+
+- `DOCKERHUB_IMAGE`: defaults to `worker-vllm`
+
+The workflow publishes on pushes to `main`, on version tags like `v1.2.3`, and via manual dispatch.
 
 # Usage: OpenAI Compatibility
 
